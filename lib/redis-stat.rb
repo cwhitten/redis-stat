@@ -26,7 +26,7 @@ class RedisStat
     options[:style] = :ascii if windows
 
     Raven.configure do |config|
-      config.dsn = 'https://1a3ed0244e5d431ab9a802f16185b0b7:565fc9528f1d41438152955e4a1cd989@app.getsentry.com/13204'
+      config.dsn = '<url>'
     end
 
     @hosts       = options[:hosts]
