@@ -13,6 +13,7 @@ require 'parallelize'
 require 'si'
 require 'rbconfig'
 require 'lps'
+require 'sentry-raven'
 
 class RedisStat
   attr_reader :hosts, :measures, :tab_measures, :verbose, :interval
@@ -23,6 +24,10 @@ class RedisStat
 
     Ansi256.enabled = STDOUT.tty? && !(windows || options[:mono])
     options[:style] = :ascii if windows
+
+    Raven.configure do |config|
+      config.dsn = 'https://1a3ed0244e5d431ab9a802f16185b0b7:565fc9528f1d41438152955e4a1cd989@app.getsentry.com/13204'
+    end
 
     @hosts       = options[:hosts]
     @redises     = @hosts.map { |e|
@@ -81,6 +86,10 @@ class RedisStat
             if server || errs < NUM_RETRIES
               @os.puts if errs == 1
               @os.puts "#{e} (#{ server ? "#{errs}" : [errs, NUM_RETRIES].join('/') })".red.bold
+              Raven.capture_message("MozAuth Redis : Cannot connect to Redis", {
+                :level => 'fatal',
+              })
+              exit 1
               server.alert "#{e} (#{errs})" if server
               sleep @interval
               retry
@@ -310,14 +319,42 @@ private
     when :used_cpu_user, :used_cpu_sys
       val = get_diff.call(key)
       val &&= (val * 100).round
+      if val != nil
+        compare_val = get_diff.call(key)
+        compare_val &&= (compare_val * 100).round
+        if compare_val.to_i > 50
+          Raven.capture_message("MozAuth Redis : CPU", {
+            :level => 'warning',
+            :extra => {
+              'cpu-percentage' => compare_val
+            }
+          })
+        end
+      end
       [humanize_number(val), val]
+
     when :keys
       val = Hash[ info.select { |k, v| k =~ /^db[0-9]+$/ } ].values.inject(0) { |sum, vs|
         sum + vs.map { |v| Hash[ v.split(',').map { |e| e.split '=' } ]['keys'].to_i }.inject(:+)
       }
       [humanize_number(val), val]
+    when :total_commands_processed_per_second
+      val = get_diff.call(key.to_s.gsub(/_per_second$/, '').to_sym)
+      if val != nil
+        compare_val = get_diff.call(key.to_s.gsub(/_per_second$/, '').to_sym)
+        compare_val &&= (compare_val * 100).round
+        if compare_val.to_i > 10000
+          Raven.capture_message("MozAuth Redis : Commands/Second", {
+            :level => 'warning',
+            :extra => {
+              'cmds/s' => compare_val
+            }
+          })
+        end
+      end
+      [humanize_number(val), val]
     when :evicted_keys_per_second, :expired_keys_per_second, :keyspace_hits_per_second,
-         :keyspace_misses_per_second, :total_commands_processed_per_second
+         :keyspace_misses_per_second
       val = get_diff.call(key.to_s.gsub(/_per_second$/, '').to_sym)
       [humanize_number(val), val]
     when :used_memory, :used_memory_rss, :aof_current_size, :aof_base_size

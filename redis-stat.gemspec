@@ -2,11 +2,11 @@
 require File.expand_path('../lib/redis-stat/version', __FILE__)
 
 Gem::Specification.new do |gem|
-  gem.authors       = ["Junegunn Choi"]
-  gem.email         = ["junegunn.c@gmail.com"]
+  gem.authors       = ["Chris Whitten"]
+  gem.email         = ["christopherwhitten@gmail.com"]
   gem.description   = %q{A real-time Redis monitoring tool written in Ruby}
   gem.summary       = %q{A real-time Redis monitoring tool written in Ruby}
-  gem.homepage      = "https://github.com/junegunn/redis-stat"
+  gem.homepage      = "https://github.com/cwhitten/redis-stat"
   gem.license       = 'MIT'
 
   gem.platform      = 'java' if RUBY_PLATFORM == 'java'
@@ -26,6 +26,7 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency "sinatra", '~> 1.3.3'
   gem.add_runtime_dependency "json", '~> 1.7.5'
   gem.add_runtime_dependency "lps", '~> 0.2.0'
+  gem.add_runtime_dependency "sentry-raven"
 
   if RUBY_PLATFORM == 'java'
     gem.add_runtime_dependency "puma", '~> 2.3.2'
