@@ -342,7 +342,6 @@ private
       val = get_diff.call(key.to_s.gsub(/_per_second$/, '').to_sym)
       if val != nil
         compare_val = get_diff.call(key.to_s.gsub(/_per_second$/, '').to_sym)
-        compare_val &&= (compare_val * 100).round
         if compare_val.to_i > 10000
           Raven.capture_message("MozAuth Redis : Commands/Second", {
             :level => 'warning',
